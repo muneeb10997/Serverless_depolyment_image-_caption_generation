@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Caption Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+        form {
+            margin: 20px auto;
+            padding: 20px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #fff;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        #output {
+            margin-top: 20px;
+        }
+        #output img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .caption {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Caption Generator</h1>
+    <form id="uploadForm">
+        <input type="file" id="imageInput" accept="image/*" required>
+        <button type="submit">Generate Caption</button>
+    </form>
+    <div id="output">
+        <img id="uploadedImage" src="" alt="" hidden>
+        <p class="caption" id="captionOutput"></p>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const imageInput = document.getElementById('imageInput');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const captionOutput = document.getElementById('captionOutput');
+
+        const API_URL = "https://<your-api-id>.execute-api.<region>.amazonaws.com/dev/upload"; // Replace with your API Gateway URL
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent page reload
+
+            // Get the selected image file
+            const file = imageInput.files[0];
+            if (!file) {
+                alert("Please select an image to upload!");
+                return;
+            }
+
+            // Read the image as Base64
+            const reader = new FileReader();
+            reader.onload = async function () {
+                const base64Image = reader.result.split(',')[1]; // Extract base64 data
+
+                // Send the image to the API
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: base64Image })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Failed to process the image.");
+                    }
+
+                    const data = await response.json();
+                    displayResult(file, data.caption);
+                } catch (error) {
+                    alert("Error: " + error.message);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function displayResult(file, caption) {
+            // Display the uploaded image
+            const url = URL.createObjectURL(file);
+            uploadedImage.src = url;
+            uploadedImage.hidden = false;
+
+            // Display the caption
+            captionOutput.textContent = caption;
+        }
+    </script>
+</body>
+</html>
