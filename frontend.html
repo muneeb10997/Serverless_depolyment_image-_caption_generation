@@ -5,197 +5,122 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Caption Generator</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f7fc;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
             text-align: center;
-            color: #333;
             padding: 20px;
         }
 
-        .container {
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            width: 400px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #007BFF;
-            font-size: 28px;
+        #uploadForm {
             margin-bottom: 20px;
         }
 
-        form {
-            margin: 20px 0;
-        }
-
-        input[type="file"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 16px;
-            background-color: #f9f9f9;
-            cursor: pointer;
+        #imageInput {
+            margin-bottom: 10px;
         }
 
         button {
-            background-color: #007BFF;
-            color: #fff;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
+            padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
         }
 
         button:hover {
             background-color: #0056b3;
         }
 
-        #output {
-            margin-top: 30px;
-        }
-
-        #uploadedImage {
+        #imagePreview {
+            margin-top: 20px;
             max-width: 100%;
             height: auto;
-            border-radius: 10px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            display: none;
         }
 
-        .caption {
+        #caption {
+            margin-top: 15px;
             font-size: 18px;
-            color: #555;
             font-weight: bold;
-            word-wrap: break-word;
-            line-height: 1.5;
-            margin-top: 10px;
-        }
-
-        .response {
-            font-size: 16px;
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .success {
-            background-color: #e0f7e0;
-            color: #4caf50;
         }
 
         .error {
-            background-color: #f8d7da;
-            color: #d9534f;
-        }
-
-        .info {
-            background-color: #cce5ff;
-            color: #0056b3;
+            color: red;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Image Caption Generator</h1>
-        <form id="uploadForm">
-            <input type="file" id="imageInput" accept="image/*" required>
-            <button type="submit">Generate Caption</button>
-        </form>
-        <div id="output">
-            <img id="uploadedImage" src="" alt="Uploaded Image">
-            <p class="caption" id="captionOutput"></p>
-            <div id="responseOutput"></div>
-            <p class="error" id="errorOutput"></p>
-        </div>
+    <h1>Image Caption Generator</h1>
+
+    <form id="uploadForm">
+        <input type="file" id="imageInput" accept="image/*" required>
+        <button type="submit">Generate Caption</button>
+    </form>
+
+    <div id="output">
+        <img id="imagePreview" src="" alt="Uploaded Image" style="display: none;">
+        <p id="caption"></p>
+        <p class="error" id="errorMessage"></p>
     </div>
 
     <script>
         const form = document.getElementById('uploadForm');
         const imageInput = document.getElementById('imageInput');
-        const uploadedImage = document.getElementById('uploadedImage');
-        const captionOutput = document.getElementById('captionOutput');
-        const errorOutput = document.getElementById('errorOutput');
-        const responseOutput = document.getElementById('responseOutput');
+        const imagePreview = document.getElementById('imagePreview');
+        const captionOutput = document.getElementById('caption');
+        const errorMessage = document.getElementById('errorMessage');
 
-        const API_URL = "https://<your-api-id>.execute-api.<region>.amazonaws.com/dev/upload"; // Replace with your API Gateway URL
+        // Replace with your API Gateway URL
+        const API_URL = "https://oa6yav0831.execute-api.us-east-1.amazonaws.com/prod/upload";
 
         form.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevent page reload
+            e.preventDefault();  // Prevent page refresh
 
-            // Reset any previous outputs
-            errorOutput.textContent = "";
+            // Reset any previous messages
+            errorMessage.textContent = "";
             captionOutput.textContent = "";
-            responseOutput.textContent = "";
-            uploadedImage.style.display = "none"; 
+            imagePreview.style.display = "none";
 
-            // Get the selected image file
             const file = imageInput.files[0];
             if (!file) {
-                errorOutput.textContent = "Please select an image to upload!";
+                errorMessage.textContent = "Please select an image!";
                 return;
             }
 
-            // Read the image as Base64
             const reader = new FileReader();
             reader.onload = async function () {
-                const base64Image = reader.result.split(',')[1]; // Extract base64 data
+                const base64Image = reader.result.split(',')[1];  // Extract base64 string
 
-                // Send the image to the API
                 try {
+                    // Send POST request to Lambda API
                     const response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({ image: base64Image })
                     });
 
                     const data = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(data.message || "Failed to process the image.");
+                    if (response.ok) {
+                        // Display image and caption on the UI
+                        imagePreview.src = 'data:image/png;base64,' + base64Image;
+                        imagePreview.style.display = "block";
+                        captionOutput.textContent = data.caption;
+                    } else {
+                        throw new Error(data.message || "Something went wrong.");
                     }
-
-                    displayResult(file, data.caption, data.status);
                 } catch (error) {
-                    errorOutput.textContent = "Error: " + error.message;
+                    errorMessage.textContent = "Error: " + error.message;
                 }
             };
-            reader.readAsDataURL(file);
+
+            reader.readAsDataURL(file);  // Read file as Base64
         });
-
-        function displayResult(file, caption, status) {
-            // Display the uploaded image
-            const url = URL.createObjectURL(file);
-            uploadedImage.src = url;
-            uploadedImage.style.display = "block";
-
-            // Display the caption
-            captionOutput.textContent = caption;
-
-            // Display the response status
-            const responseClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'info';
-            responseOutput.className = 'response ' + responseClass;
-            responseOutput.textContent = `Status: ${status} - ${caption}`;
-        }
     </script>
 
 </body>
